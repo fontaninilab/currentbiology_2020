@@ -1,1 +1,1 @@
-# currentbiology_2020
+# Data and scripts for the paper published
