@@ -1,4 +1,4 @@
-# Data and scripts for the paper published
+# Scripts for the paper published
 Figure2_PCAtrajectory_Distance.m was use to construct the trajectory of population activity in PCA space (Figure2).
 
 Figure2_PopulationDecoding.m was used to calculate the classification accuracy and construct confusion matrices based on population activity. The population decoding analysis was relied on the neural decoding toolbox:http://www.readout.info/. 
