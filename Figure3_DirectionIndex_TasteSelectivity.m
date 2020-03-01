@@ -1,11 +1,5 @@
 %% load
-for i = 1:length(Sum)
-    data(i).Right.Correct = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsRCorr.FLickRSpou,100,-2000,1000);
-    data(i).Right.error   = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsRErr.FLickRSpou,100,-2000,1000);
-    data(i).Left.Correct  = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsLCorr.FLickLSpou,100,-2000,1000);
-    data(i).Left.error    = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsLErr.FLickRSpou,100,-2000,1000);
-    fprintf('%d\n',i)
-end
+load('data_PSTH_direction.mat')
 %% Calculate direction index and infer statistical significance.
 for j = 1:length(data)
     fprintf('Process Neuron # %d\n', j)
