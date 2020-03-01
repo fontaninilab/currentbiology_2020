@@ -1,5 +1,11 @@
 %% load
-load('data_PSTH_direction.mat')
+for i = 1:length(Sum)
+    data(i).Right.Correct = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsRCorr.FLickRSpou,100,-2000,1000);
+    data(i).Right.error   = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsRErr.FLickRSpou,100,-2000,1000);
+    data(i).Left.Correct  = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsLCorr.FLickLSpou,100,-2000,1000);
+    data(i).Left.error    = spike2eventRasteandPSTH_NP(Sum(i).timestampN, Sum(i).event.tsLErr.FLickRSpou,100,-2000,1000);
+    fprintf('%d\n',i)
+end
 %% Calculate direction index and infer statistical significance.
 for j = 1:length(data)
     fprintf('Process Neuron # %d\n', j)
@@ -269,8 +275,90 @@ axis square
 xlabel('Max taste selectivity')
 ylabel('Direction index')
 legend([h1,h2],{'p_y < 0.01', 'p_x_,_y < 0.01'})
-%% try to show neurons
+
+%% Calculate direction index for error trials
 for i = 1:length(data)
-    data(i).Right.Correct = [];
-    data(i).Left.Correct = [];
+    Idx(i) = data(i).auROC.PlanRcorr_vsLcorr.stats.respFlag;
+    Idx_dir(i) = data(i).auROC.PlanRcorr_vsLcorr.p;
 end
+Idx_rp = find(Idx==1 & Idx_dir>0); % id for right  neuron
+Idx_lp = find(Idx==1 & Idx_dir<0); % id for left  neuron
+%% Trying to calculate the preference value for error trials
+Idx = find(Idx ==1);
+% Idx = 1:length(Sum);
+%%
+for i = 1:length(Idx)
+    fprintf('Process neuron %4.2f \n',i)
+    right = data(Idx(i)).Right.error.Event;
+    left  = data(Idx(i)).Left.error.Event;
+    if length(right)<10 || length(left)<10
+        p(i) =NaN;
+    else
+        indx = find(data(1).Right.error.timepoint>-1 & data(1).Right.error.timepoint<0);
+        unit.right.scmatrix = mean(data(Idx(i)).Right.error.scmatrix(:,indx),2);
+        unit.left.scmatrix  = mean(data(Idx(i)).Left.error.scmatrix(:,indx),2);
+        p(i) = Test_auROC_dISCRIMINATION(unit.right.scmatrix,unit.left.scmatrix);
+        % Using bootstrap to perform the statistic test
+        com_data = [unit.right.scmatrix; unit.left.scmatrix];
+        for j = 1:1000 % 1000 iteration
+            [data_right(:,j),idx_p] = datasample(com_data,length(unit.right.scmatrix),'Replace',false);
+            idx_pall          = 1:length(com_data);
+            data_left(:,j)    = com_data(setdiff(idx_pall,idx_p));
+            shaffle_p(j)      = Test_auROC_dISCRIMINATION(data_right(:,j),data_left(:,j));
+        end
+        if p(i)>=0 % one tail bootstrap
+            stats(i).p = length(find(shaffle_p>=p(i)))/1000;
+        else
+            stats(i).p = length(find(shaffle_p<=p(i)))/1000;
+        end
+        
+        if stats(i).p>0.01
+            stats(i).resp = 0;
+        else
+            stats(i).resp = 1;
+        end
+        clear data_right data_left shaffle_p
+        
+    end
+end
+%%
+iDX2 = find(~isnan(p));
+errorP = p(iDX2);
+corIdx = Idx(iDX2);
+for i = 1:length(corIdx)
+    corP(i) = data(corIdx(i)).auROC.PlanRcorr_vsLcorr.p; % direction index in correct trials
+end
+errorP = -errorP; % flip the sign, as this is direction index in error trials
+figure;
+h1 = scatter(corP, errorP);
+hold on
+% linearcorrelation(corP,errorP)
+xlim([-1,1])
+ylim([-1,1])
+hold on
+plot([0,0],[-1,1],'--k')
+plot([-1,1],[0,0],'--k')
+
+% Plot the significant preference within error trials
+k = 1;
+for i = 1:length(stats)
+    if stats(i).resp ==1
+        idx_sig(k) = i;
+        k = k+1;
+    end
+end
+hold on
+iDX2 = idx_sig;
+errorP = p(iDX2);
+corIdx = Idx(iDX2);
+clear corP
+for i = 1:length(corIdx)
+    corP(i) = data(corIdx(i)).auROC.PlanRcorr_vsLcorr.p;
+end
+hold on
+h2 = scatter(corP, -errorP,'r')
+xlim([-1,1])
+ylim([-1,1])
+legend([h1,h2],{'p_x < 0.01','p_x_,_y < 0.01'})
+xlabel('Corrects: direction index')
+ylabel('Errors: direction index')
